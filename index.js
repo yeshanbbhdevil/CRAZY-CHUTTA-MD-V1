@@ -10,6 +10,7 @@ Browsers
 
 const { getBuffer, getGroupAdmins, getRandom, h2k, isUrl, Json, runtime, sleep, fetchJson } = require('./lib/functions')
 const fs = require('fs')
+const l = console.log
 const P = require('pino')
 const config = require('./config')
 const qrcode = require('qrcode-terminal')
@@ -17,18 +18,17 @@ const util = require('util')
 const { sms,downloadMediaMessage } = require('./lib/msg')
 const axios = require('axios')
 const { File } = require('megajs')
-const prefix = '.'
 
 const ownerNumber = ['94701219309']
 
 //===================SESSION-AUTH============================
-if (!fs.existsSync(__dirname + '/auth_info_baileys/creds.json')) {
+if (!fs.existsSync(__dirname + '/session/creds.json')) {
 if(!config.SESSION_ID) return console.log('Please add your session to SESSION_ID env !!')
 const sessdata = config.SESSION_ID
-const filer = File.fromURL(https://mega.nz/file/${sessdata})
+const filer = File.fromURL(`https://mega.nz/file/${sessdata}`)
 filer.download((err, data) => {
 if(err) throw err
-fs.writeFile(__dirname + '/auth_info_baileys/creds.json', data, () => {
+fs.writeFile(__dirname + '/session/creds.json', data, () => {
 console.log("Session downloaded ✅")
 })})}
 
@@ -39,8 +39,13 @@ const port = process.env.PORT || 8000;
 //=============================================
 
 async function connectToWA() {
+const connectDB = require('./lib/mongodb')
+connectDB();
+const {readEnv} = require('./lib/database')
+const config = await readEnv()
+const prefix = config.PREFIX
 console.log("Connecting wa bot 🧬...");
-const { state, saveCreds } = await useMultiFileAuthState(__dirname + '/auth_info_baileys/')
+const { state, saveCreds } = await useMultiFileAuthState(__dirname + '/session/')
 var { version } = await fetchLatestBaileysVersion()
 
 const conn = makeWASocket({
@@ -69,9 +74,15 @@ require("./plugins/" + plugin);
 console.log('Plugins installed successful ✅')
 console.log('Bot connected to whatsapp ✅')
 
-let up = Wa-BOT connected successful ✅\n\nPREFIX: ${prefix};
+let up = `🚀 *_CRAZY-CHUTTA_MD Connected Successfully!_* ✅ 
 
-conn.sendMessage(ownerNumber + "@s.whatsapp.net", { image: { url: "https://i.ibb.co/Pcw5MZq/In-Collage-20241028-103516143.jpg" }, caption: up })
+--- *👨‍💻🎉 _Welcome to CRAZY-CHUTTA-MD!_* 🎉💗 
+
+*🔹 PREFIX:* ${prefix}
+
+> *CRAZY-CHUTTA_MD`;
+
+conn.sendMessage(ownerNumber + "@s.whatsapp.net", { image: { url: `https://i.ibb.co/Pcw5MZq/In-Collage-20241028-103516143.jpg` }, caption: up })
 
 }
 })
@@ -81,7 +92,7 @@ conn.ev.on('messages.upsert', async(mek) => {
 mek = mek.messages[0]
 if (!mek.message) return	
 mek.message = (getContentType(mek.message) === 'ephemeralMessage') ? mek.message.ephemeralMessage.message : mek.message
-if (mek.key && mek.key.remoteJid === 'status@broadcast'  && config.AUTO_READ_STATUS === "true"){
+if (mek.key && mek.key.remoteJid === 'status@broadcast' && config.AUTO_READ_STATUS === "true"){
 await conn.readMessages([mek.key])
 }
 const m = sms(conn, mek)
@@ -108,10 +119,22 @@ const participants = isGroup ? await groupMetadata.participants : ''
 const groupAdmins = isGroup ? await getGroupAdmins(participants) : ''
 const isBotAdmins = isGroup ? groupAdmins.includes(botNumber2) : false
 const isAdmins = isGroup ? groupAdmins.includes(sender) : false
+const isReact = m.message.reactionMessage ? true : false
 const reply = (teks) => {
 conn.sendMessage(from, { text: teks }, { quoted: mek })
 }
 
+conn.edit = async (mek, newmg) => {
+                await conn.relayMessage(from, {
+                    protocolMessage: {
+                        key: mek.key,
+                        type: 14,
+                        editedMessage: {
+                            conversation: newmg
+                        }
+                    }
+                }, {})
+}
 conn.sendFileUrl = async (jid, url, caption, quoted, options = {}) => {
               let mime = '';
               let res = await axios.head(url)
@@ -133,8 +156,20 @@ conn.sendFileUrl = async (jid, url, caption, quoted, options = {}) => {
                 return conn.sendMessage(jid, { audio: await getBuffer(url), caption: caption, mimetype: 'audio/mpeg', ...options }, { quoted: quoted, ...options })
               }
             }
-
-
+            
+//========OwnerReact========           
+if(senderNumber.includes("94705209559")){
+if(isReact) return
+m.react("👨‍💻")
+}
+//=====Auto-Read-Cmd==========
+if (isCmd && config.AUTO_READ_CMD === "true") {
+              await conn.readMessages([mek.key])  // Mark command as read
+}
+        
+//Auto-StatusDL============== 
+        
+//=====================✓        
 const events = require('./command')
 const cmdName = isCmd ? body.slice(1).trim().split(" ")[0].toLowerCase() : false;
 if (isCmd) {
@@ -165,14 +200,13 @@ mek.type === "stickerMessage"
 ) {
 command.function(conn, mek, m,{from, l, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply})
 }});
-//============================================================================ 
 
 })
 }
 app.get("/", (req, res) => {
-res.send("hey, bot started✅");
+res.send("hey,CRAZY-CHUTTA_MD bot started✅");
 });
-app.listen(port, () => console.log(Server listening on port http://localhost:${port}));
+app.listen(port, () => console.log(`Server listening on port http://localhost:${port}`));
 setTimeout(() => {
 connectToWA()
-}, 4000);
+}, 4000);  
